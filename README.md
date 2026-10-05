@@ -6,6 +6,10 @@
 
 Everything runs in your browser. The file is never uploaded, and the page makes no requests to other sites (enforced by its Content Security Policy).
 
+### Offline version
+
+Download **[tds-lens.html](https://antichaos.github.io/tds-lens/tds-lens.html)**: the whole app in one file (about 190 KB). Double-click it to open it in your browser. It needs no web server and no internet, so you can email it or put it on a network drive. Build it yourself with `npm run build` (output: `dist/tds-lens.html`).
+
 ## What it shows
 
 - **Connections**: type, server, database and schema, login, Initial SQL, query banding, connection customizations
@@ -37,7 +41,7 @@ python tds_structure.py -d "My data source" -f json
 
 ## Development
 
-No build step: `web/` is served as-is.
+No build step for the website: `web/` is served as-is. `npm run build` only creates the single-file offline version.
 
 ```bash
 npm install        # dev dependencies for the tests only

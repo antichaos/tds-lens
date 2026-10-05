@@ -199,8 +199,10 @@ function init() {
   $("openAnother").addEventListener("click", () => $("fileInput").click());
   $("trySample").addEventListener("click", async () => {
     try {
-      const res = await fetch("samples/superstore_sample.tds");
-      const blob = await res.blob();
+      // the single-file (offline) build embeds the sample; the website fetches it
+      const blob = globalThis.TDS_LENS_SAMPLE
+        ? new Blob([globalThis.TDS_LENS_SAMPLE], { type: "text/xml" })
+        : await (await fetch("samples/superstore_sample.tds")).blob();
       openFile(new File([blob], "superstore_sample.tds"));
     } catch {
       showError("The sample could not be loaded.");

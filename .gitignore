@@ -13,3 +13,5 @@ __pycache__/
 /*.tdsx
 /*.twb
 /*.twbx
+dist/
+/web/tds-lens.html
