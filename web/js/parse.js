@@ -312,7 +312,20 @@ export function parseDatasource(ds) {
   for (const [k, v] of Object.entries(a)) if (flag(k)) out.other_settings[k] = v;
   if (topConn) for (const [k, v] of Object.entries(attrs(topConn))) if (flag(k)) out.other_settings[`connection.${k}`] = v;
 
+  // display-only extras (not part of the JSON model, which mirrors tds_structure.py)
+  const fieldCaptions = {};
+  const calculations = [];
+  for (const c of kids(ds, "column")) {
+    const name = get(c, "name"), caption = get(c, "caption");
+    if (name && caption) fieldCaptions[name] = caption;
+    const calc = kid(c, "calculation");
+    if (calc && get(calc, "formula")) {
+      calculations.push({ name, caption: caption || stripBrackets(name), formula: get(calc, "formula"), datatype: get(c, "datatype"), role: get(c, "role") });
+    }
+  }
   Object.defineProperty(out, "connCaptions", { value: connCaptions, enumerable: false });
+  Object.defineProperty(out, "fieldCaptions", { value: fieldCaptions, enumerable: false });
+  Object.defineProperty(out, "calculations", { value: calculations, enumerable: false });
   return out;
 }
 
@@ -392,6 +405,17 @@ export function joinClause(node) {
     if (full !== alias && full.startsWith(alias)) clause = clause.split(`[${alias}].`).join(`[${full}].`);
   }
   return readable(clause);
+}
+
+/** Field name as people see it: "[Calculation_123]" -> "Profit Ratio". */
+export function fieldLabel(ds, field) {
+  return (ds.fieldCaptions && ds.fieldCaptions[field]) || stripBrackets(field);
+}
+
+/** Data source title; published data sources sometimes only carry an internal "federated.xxx" name. */
+export function dsTitle(ds, fallback = "") {
+  const t = ds.caption.trim();
+  return (/^federated\.[a-z0-9]+$/i.test(t) && fallback) ? fallback : t;
 }
 
 /** Same shape as tds_structure.py --format json. */

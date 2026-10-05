@@ -1,7 +1,8 @@
 // TDS Lens - HTML report, detail panels and text / Mermaid exports.
 import {
-  displayName, joinClause, leafConnections, simpleTable, stripBrackets, unqualify,
+  displayName, fieldLabel, joinClause, leafConnections, simpleTable, stripBrackets, unqualify,
 } from "./parse.js";
+import { SECTION_ORDER } from "./compare.js";
 
 export const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -179,14 +180,14 @@ export function renderHtml(ds) {
       ["Settings", extra.length ? esc(extra.map(([k, v]) => `${k}=${v}`).join(", ")) : ""],
       ["Refresh", e.refresh ? esc(Object.entries(e.refresh).map(([k, v]) => `${k}=${v}`).join(", ")) : ""],
       ["Last refresh", e.last_refresh_event ? esc(Object.entries(e.last_refresh_event).map(([k, v]) => `${k}=${v}`).join(", ")) + ` <span class="muted">(${e.refresh_events} events)</span>` : ""],
-      ["Filters", e.filters ? e.filters.map((f) => `<code>${esc(f)}</code>`).join(" ") : ""],
+      ["Filters", e.filters ? e.filters.map((f) => `<code>${esc(fieldLabel(ds, f))}</code>`).join(" ") : ""],
       ["Tables", e.tables && e.tables.length ? `<details><summary>${e.tables.length} tables</summary><ul class="plain">${e.tables.map((t) => `<li><code>${esc(unqualify(t))}</code></li>`).join("")}</ul></details>` : ""],
     ]) + `</section>`;
   }
 
   if (ds.filters.length) {
     h += `<section class="card"><header class="card-head"><h3>Data source filters</h3></header><ul class="plain">` +
-      ds.filters.map((f) => `<li><code>${esc(f.column)}</code> <span class="muted">${esc(f.class)}</span></li>`).join("") + `</ul></section>`;
+      ds.filters.map((f) => `<li><code>${esc(fieldLabel(ds, f.column))}</code> <span class="muted">${esc(f.class)}</span></li>`).join("") + `</ul></section>`;
   }
   const others = Object.entries(ds.other_settings).filter(([k]) => k !== "note");
   if (others.length) {
@@ -300,10 +301,10 @@ function relsText(rels, names, L) {
   }
 }
 
-export function renderText(ds) {
+export function renderText(ds, checks = [], title = null) {
   const { groups, multiConnTables, cross, names } = groupByConnection(ds);
   const H = "═".repeat(100), R = "─".repeat(100);
-  const L = [H, `DATA SOURCE   ${ds.caption}`, H,
+  const L = [H, `DATA SOURCE   ${title ?? ds.caption}`, H,
     `  Model        ${ds.model || "unknown"}`,
     `  Summary      ${ds.connections.length} connection(s), ${ds.tables.length} table(s), ${ds.relationships.length} relationship(s), ${ds.calculated_fields} calculated field(s)`];
   if (ds.other_settings.note) L.push(`  NOTE         ${ds.other_settings.note}`);
@@ -332,7 +333,13 @@ export function renderText(ds) {
     if (e.filters) L.push(`  Filters      ${e.filters.join(", ")}`);
     if (e.tables && e.tables.length) { L.push(`  Tables (${e.tables.length}):`); e.tables.forEach((t) => L.push(`    - ${unqualify(t)}`)); }
   }
-  if (ds.filters.length) { section(`DATA SOURCE FILTERS (${ds.filters.length})`); ds.filters.forEach((f) => L.push(`  - ${f.column}  (${f.class})`)); }
+  if (ds.filters.length) { section(`DATA SOURCE FILTERS (${ds.filters.length})`); ds.filters.forEach((f) => L.push(`  - ${fieldLabel(ds, f.column)}  (${f.class})`)); }
+  if (checks.length) {
+    section(`CHECKS (${checks.length})`);
+    for (const c of checks) {
+      L.push(`  [${c.severity.toUpperCase()}] ${c.title}`, ...c.detail.split("\n").map((d) => `      ${d}`), `      Why: ${c.why}`);
+    }
+  }
   L.push("");
   return L.join("\n");
 }
@@ -351,5 +358,185 @@ export function renderMermaid(ds) {
     const right = r.second.cardinality === "One" ? "||" : "o{";
     L.push(`    ${ids[r.first.table_id] ?? mermaidId(r.first.table)} ${left}--${right} ${ids[r.second.table_id] ?? mermaidId(r.second.table)} : "${unqualify(r.predicate_resolved).replace(/"/g, "'")}"`);
   }
+  return L.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Checks
+// ---------------------------------------------------------------------------
+
+function checkItem(c, i) {
+  const hasTargets = c.targets && c.targets.length;
+  return `<li class="finding ${c.severity}"><div class="finding-head"><span class="pill ${c.severity === "warning" ? "warn" : "some"}">${c.severity === "warning" ? "verify" : "note"}</span>` +
+    `<strong>${esc(c.title)}</strong>${hasTargets ? ` <button class="link small" data-check="${i}">show in diagram</button>` : ""}</div>` +
+    `<div class="finding-detail">${c.detail.split("\n").map((d) => `<code>${esc(d)}</code>`).join("<br>")}</div><div class="muted small">${esc(c.why)}</div></li>`;
+}
+
+/** The checks card, shown above the per-connection report. */
+export function checksHtml(checks) {
+  const warnings = checks.map((c, i) => [c, i]).filter(([c]) => c.severity === "warning");
+  const notes = checks.map((c, i) => [c, i]).filter(([c]) => c.severity !== "warning");
+  let h = `<section class="card checks"><header class="card-head"><h3>Checks</h3>` +
+    `<span class="muted small">${warnings.length} to verify · ${notes.length} note${notes.length === 1 ? "" : "s"}</span></header>`;
+  if (!checks.length) return h + `<p class="muted">Nothing found to verify.</p></section>`;
+  if (warnings.length) h += `<ul class="checklist">${warnings.map(([c, i]) => checkItem(c, i)).join("")}</ul>`;
+  else h += `<p class="muted">Nothing found to verify.</p>`;
+  if (notes.length) {
+    h += `<details class="notes"${warnings.length ? "" : " open"}><summary>${notes.length} note${notes.length === 1 ? "" : "s"} worth knowing or documenting</summary>` +
+      `<ul class="checklist">${notes.map(([c, i]) => checkItem(c, i)).join("")}</ul></details>`;
+  }
+  return h + `</section>`;
+}
+
+// ---------------------------------------------------------------------------
+// Comparison
+// ---------------------------------------------------------------------------
+
+const KIND_LABEL = { added: "added", removed: "removed", changed: "changed" };
+const val = (v) => (v.includes("\n") ? `<pre class="sql">${esc(v)}</pre>` : v ? `<code>${esc(v)}</code>` : `<span class="muted">–</span>`);
+
+export function compareHtml(result, nameA, nameB) {
+  const { changes } = result;
+  if (!changes.length) {
+    return `<section class="card"><header class="card-head"><h3>No differences</h3></header>` +
+      `<p>The connections, tables, relationships, performance options, extract settings, filters and calculations are the same in both files.</p></section>`;
+  }
+  let h = "";
+  for (const section of SECTION_ORDER) {
+    const rows = changes.filter((c) => c.section === section);
+    if (!rows.length) continue;
+    h += `<section class="card"><header class="card-head"><h3>${esc(section)}</h3><span class="count">${rows.length}</span></header>` +
+      `<div class="table-wrap"><table class="diff"><thead><tr><th>Change</th><th>Item</th><th>${esc(nameA)}</th><th>${esc(nameB)}</th></tr></thead><tbody>`;
+    for (const c of rows) {
+      const t = c.targetB || c.targetA;
+      const data = t ? (t.table !== undefined ? ` data-table="${esc(t.table)}"` : ` data-rel="${t.rel}"`) : "";
+      // removed items only exist in A, so they can't be shown on B's diagram
+      const clickable = c.targetB ? data : "";
+      h += `<tr${clickable}><td><span class="pill ${c.kind}">${KIND_LABEL[c.kind]}</span></td><td>${esc(c.item)}</td><td>${val(c.a)}</td><td>${val(c.b)}</td></tr>`;
+    }
+    h += `</tbody></table></div></section>`;
+  }
+  return h;
+}
+
+export function compareText(result, nameA, nameB) {
+  const L = [`COMPARISON`, `  A: ${nameA}`, `  B: ${nameB}`, ""];
+  if (!result.changes.length) L.push("No differences.");
+  for (const section of SECTION_ORDER) {
+    const rows = result.changes.filter((c) => c.section === section);
+    if (!rows.length) continue;
+    L.push(`${section.toUpperCase()} (${rows.length})`);
+    for (const c of rows) {
+      L.push(`  ${c.kind.padEnd(8)} ${c.item}`);
+      if (c.a) L.push(`           A: ${c.a.replace(/\n/g, "\n              ")}`);
+      if (c.b) L.push(`           B: ${c.b.replace(/\n/g, "\n              ")}`);
+    }
+    L.push("");
+  }
+  return L.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Markdown (for wikis, Confluence, git): documentation of one data source
+// ---------------------------------------------------------------------------
+
+const md = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
+const mdCode = (s) => (s ? "`" + String(s).replace(/`/g, "'").replace(/\n/g, " ") + "`" : "");
+
+function physicalMd(node, conns, ind, L) {
+  if (node.kind === "table") L.push(`${ind}- table ${mdCode(unqualify(node.table) || node.name)}`);
+  else if (node.kind === "custom-sql") L.push(`${ind}- custom SQL ${mdCode(node.name)}`, "", "```sql", node.sql, "```", "");
+  else if (node.kind === "join") L.push(`${ind}- **${node.join_type.toUpperCase()} JOIN** on ${mdCode(joinClause(node))}`);
+  else L.push(`${ind}- ${node.kind} ${mdCode(node.name)}`);
+  node.children.forEach((c) => physicalMd(c, conns, ind + "  ", L));
+}
+
+export function renderMarkdown(ds, checks = [], { title = null, imageFile = null } = {}) {
+  const { groups, multiConnTables, cross, names } = groupByConnection(ds);
+  const conns = ds.connCaptions || {};
+  const L = [`# ${title ?? ds.caption.trim()}`, ""];
+  L.push(`- **Model:** ${ds.model || "unknown"}`,
+    `- **Storage:** ${ds.extract && ds.extract.enabled === "true" ? `extract (${ds.extract.storage || "?"})` : "live"}`,
+    `- **Contents:** ${ds.connections.length} connection(s), ${ds.tables.length} table(s), ${ds.relationships.length} relationship(s), ${ds.calculated_fields} calculated field(s)`, "");
+  if (imageFile) L.push(`![Relationship diagram](${imageFile})`, "");
+
+  const relRows = (rels) => {
+    if (!rels.length) return ["_No relationships._", ""];
+    const out = ["| From | To | Joined on | Cardinality | Records match (from / to) |", "|---|---|---|---|---|"];
+    for (const { r } of rels) {
+      out.push(`| ${md(names[r.first.table_id] ?? r.first.table)} | ${md(names[r.second.table_id] ?? r.second.table)} | ${mdCode(unqualify(r.predicate_resolved))} | ` +
+        `${r.first.cardinality} : ${r.second.cardinality} | ${match(r.first)} / ${match(r.second)}${isDefault(r) ? " (defaults)" : ""} |`);
+    }
+    return [...out, ""];
+  };
+  const tableMd = (t) => {
+    const out = [`#### ${names[t.id]}${t.role ? ` _(${t.role})_` : ""}`, ""];
+    if (simpleTable(t.physical)) out.push(`Table ${mdCode(unqualify(t.physical.table))}`, "");
+    else if (t.physical) { physicalMd(t.physical, conns, "", out); out.push(""); }
+    if (t.columns.length) {
+      out.push("<details><summary>" + t.columns.length + " columns</summary>", "", "| Column | Type | Source |", "|---|---|---|");
+      for (const c of t.columns) out.push(`| ${md(c.name)} | ${md(c.datatype)} | ${c.remote_name && c.remote_name !== c.name ? mdCode(`${c.parent}.${c.remote_name}`) : ""} |`);
+      out.push("", "</details>", "");
+    }
+    return out;
+  };
+
+  groups.forEach(({ conn: c, tables, rels }, i) => {
+    L.push(`## Connection ${groups.length > 1 ? `${i + 1}: ` : ""}${c ? md(c.caption || c.name) : "Tables"}`, "");
+    if (c) {
+      L.push("| Setting | Value |", "|---|---|", `| Type | ${md(c.cls)} |`);
+      if (c.server) L.push(`| Server | ${mdCode(c.server + (c.port ? `:${c.port}` : ""))} |`);
+      if (c.dbname) L.push(`| Database | ${mdCode(c.dbname)} |`);
+      if (c.schema) L.push(`| Schema | ${mdCode(c.schema)} |`);
+      if (c.username) L.push(`| Login | ${mdCode(c.username)} |`);
+      if (c.initial_sql) L.push(`| Initial SQL | ${mdCode(c.initial_sql)} |`);
+      if (c.query_band) L.push(`| Query band | ${mdCode(c.query_band)} |`);
+      L.push("");
+    }
+    L.push(`### Tables (${tables.length})`, "");
+    tables.forEach((t) => L.push(...tableMd(t)));
+    L.push(`### Relationships (${rels.length})`, "", ...relRows(rels));
+  });
+  if (multiConnTables.length) { L.push("## Tables spanning multiple connections", ""); multiConnTables.forEach((t) => L.push(...tableMd(t))); }
+  if (cross.length) L.push("## Cross-connection relationships", "", ...relRows(cross));
+
+  if (ds.extract && ds.extract.enabled) {
+    const e = ds.extract;
+    L.push("## Extract", "", `- **Enabled:** ${e.enabled}`, `- **Storage:** ${e.storage || "?"}`);
+    if (e.filters) L.push(`- **Extract filters:** ${e.filters.map((f) => mdCode(fieldLabel(ds, f))).join(", ")}`);
+    L.push("");
+  }
+  if (ds.filters.length) L.push("## Data source filters", "", ...ds.filters.map((f) => `- ${mdCode(fieldLabel(ds, f.column))} (${f.class})`), "");
+  if (ds.calculations && ds.calculations.length) {
+    L.push(`## Calculated fields (${ds.calculations.length})`, "", "| Name | Type | Formula |", "|---|---|---|");
+    for (const c of ds.calculations) {
+      L.push(`| ${md(c.caption)} | ${md(c.datatype)} | ${mdCode(c.formula.replace(/\[(Calculation_\d+)\]/g, (m) => `[${fieldLabel(ds, m)}]`))} |`);
+    }
+    L.push("");
+  }
+  if (checks.length) {
+    L.push("## Checks", "");
+    for (const c of checks) {
+      L.push(`- **${c.severity === "warning" ? "Verify" : "Note"}: ${md(c.title)}**  `);
+      for (const d of c.detail.split("\n")) L.push(`  ${mdCode(d)}  `);
+      L.push(`  ${md(c.why)}`);
+    }
+    L.push("");
+  }
+  L.push("---", `_Generated with [TDS Lens](https://antichaos.github.io/tds-lens/)._`, "");
+  return L.join("\n");
+}
+
+export function compareMarkdown(result, nameA, nameB) {
+  const L = [`# Comparison`, "", `- **A:** ${md(nameA)}`, `- **B:** ${md(nameB)}`, ""];
+  if (!result.changes.length) L.push("No differences.", "");
+  for (const section of SECTION_ORDER) {
+    const rows = result.changes.filter((c) => c.section === section);
+    if (!rows.length) continue;
+    L.push(`## ${section} (${rows.length})`, "", "| Change | Item | A | B |", "|---|---|---|---|");
+    for (const c of rows) L.push(`| ${c.kind} | ${md(c.item)} | ${mdCode(c.a)} | ${mdCode(c.b)} |`);
+    L.push("");
+  }
+  L.push("---", `_Generated with [TDS Lens](https://antichaos.github.io/tds-lens/)._`, "");
   return L.join("\n");
 }

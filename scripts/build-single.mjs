@@ -13,7 +13,7 @@ const SITE = "https://antichaos.github.io/tds-lens/";
 
 // --- bundle the ES modules into one module script ------------------------------
 // Each module becomes a scope that returns its exports; imports become destructuring.
-const MODULES = ["parse", "diagram", "report", "app"]; // dependency order
+const MODULES = ["parse", "diagram", "checks", "compare", "report", "app"]; // dependency order
 
 function bundle() {
   const parts = [];

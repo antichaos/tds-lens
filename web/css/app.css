@@ -109,7 +109,7 @@ a { color: var(--accent); }
 .dropzone strong { color: var(--text); font-size: 17px; }
 .dropzone:hover, body.dragging .dropzone { border-color: var(--accent); background: var(--accent-soft); }
 .error { background: var(--error-soft); color: var(--error); border-radius: 8px; padding: 10px 14px; text-align: center; }
-.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+.features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 28px; margin-top: 40px; }
 .features h2 { font-size: 15px; margin-bottom: 4px; }
 .features p { margin: 0; color: var(--muted); font-size: 14px; }
 .howto { margin-top: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; }
@@ -141,7 +141,7 @@ body.dragging::after {
 .downloads { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .downloads .muted { margin-right: 2px; }
 
-.stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+.stage { scroll-margin-top: 64px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
 .stage.with-panel { grid-template-columns: minmax(0, 1fr) 360px; }
 .canvas {
   background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
@@ -233,3 +233,27 @@ table.cols td { padding: 3px 8px; }
   table.rels td:nth-child(3) { grid-column: 1 / -1; }
   table.rels td:nth-child(4) { color: var(--muted); }
 }
+
+/* checks */
+.checks { border-left: 4px solid var(--warn); }
+.checklist { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 12px; }
+.finding-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.finding-detail { margin: 4px 0; line-height: 1.8; }
+.finding-detail code { white-space: pre-wrap; }
+details.notes { margin-top: 14px; }
+details.notes > summary { color: var(--muted); font-size: 13.5px; }
+details.notes .checklist { margin-top: 10px; }
+
+/* comparison */
+.comparebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: var(--accent-soft); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; }
+.pill.added { background: var(--ok-soft); color: var(--ok); }
+.pill.removed { background: var(--error-soft); color: var(--error); }
+.pill.changed { background: var(--warn-soft); color: var(--warn); }
+.pill.a, .pill.b { background: var(--surface-2); color: var(--text); }
+table.diff { table-layout: fixed; min-width: 640px; }
+table.diff th:nth-child(1) { width: 100px; }
+table.diff th:nth-child(2) { width: 28%; }
+table.diff td { overflow-wrap: anywhere; }
+table.diff tr[data-table], table.diff tr[data-rel] { cursor: pointer; }
+table.diff tr[data-table]:hover td, table.diff tr[data-rel]:hover td { background: var(--accent-soft); }
+#dsModel .pill { margin-right: 4px; }

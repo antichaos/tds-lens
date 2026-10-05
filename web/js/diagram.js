@@ -124,7 +124,9 @@ export function layout(ds) {
 }
 
 /** Render the diagram. Elements carry data-table / data-rel for interactivity. */
-export function renderSvg(ds, { edgeLabels = false, title = true } = {}) {
+export function renderSvg(ds, { edgeLabels = false, title = true, marks = null, titleText = null } = {}) {
+  // marks: { tables: {id: "added"|"changed"}, rels: {index: "added"|"changed"} } (comparison view)
+  const mk = (kind) => (kind ? ` m-${kind}` : "");
   const { pos, tree, cross, roots, nRows } = layout(ds);
   const tables = Object.fromEntries(ds.tables.map((t) => [t.id, t]));
   const names = Object.fromEntries(ds.tables.map((t) => [t.id, displayName(t)]));
@@ -154,7 +156,8 @@ export function renderSvg(ds, { edgeLabels = false, title = true } = {}) {
   const bw = (tid) => boxW[pos[tid][0]];
   const boxXY = (tid) => [colX[pos[tid][0]], top + pos[tid][1] * ROW_H];
 
-  const width = Math.max(Math.round(x - colGap + MARGIN), title ? Math.ceil(textWidth(ds.caption.trim(), 14)) + 2 * MARGIN : 0);
+  const width = Math.max(Math.round(x - colGap + MARGIN),
+    title ? Math.ceil(textWidth(titleText ?? ds.caption.trim(), 14)) + 2 * MARGIN + (marks ? 160 : 0) : 0);
   const height = top + Math.max(nRows, 1) * ROW_H - (ROW_H - BOX_H) + MARGIN;
 
   const S = [
@@ -170,10 +173,19 @@ export function renderSvg(ds, { edgeLabels = false, title = true } = {}) {
       ".lbl{font-size:12px;fill:#333}" +
       ".elbl{font-size:10px;fill:#777}" +
       ".title{font-size:14px;fill:#555;font-weight:600}" +
+      "g.m-added .box{fill:#e1f3e8;stroke:#1e7a46;stroke-width:2}g.m-changed .box{fill:#fdf0d5;stroke:#b26b00;stroke-width:2}" +
+      "g.rel.m-added .edge{stroke:#1e7a46;stroke-width:3}g.rel.m-changed .edge{stroke:#b26b00;stroke-width:3}" +
+      ".lgd{font-size:11px;fill:#555}" +
       "</style>",
     `<rect width="100%" height="100%" fill="#fff"/>`,
   ];
-  if (title) S.push(`<text class="title" x="${MARGIN}" y="${MARGIN + 12}">${esc(ds.caption.trim())}</text>`);
+  const heading = titleText ?? ds.caption.trim();
+  if (title) S.push(`<text class="title" x="${MARGIN}" y="${MARGIN + 12}">${esc(heading)}</text>`);
+  if (marks && title) {
+    const lx = MARGIN + Math.ceil(textWidth(heading, 14)) + 24;
+    S.push(`<rect x="${lx}" y="${MARGIN + 2}" width="12" height="12" fill="#e1f3e8" stroke="#1e7a46" stroke-width="2"/><text class="lgd" x="${lx + 17}" y="${MARGIN + 12}">added</text>` +
+      `<rect x="${lx + 70}" y="${MARGIN + 2}" width="12" height="12" fill="#fdf0d5" stroke="#b26b00" stroke-width="2"/><text class="lgd" x="${lx + 87}" y="${MARGIN + 12}">changed</text>`);
+  }
 
   // rail joining multiple base tables (as Tableau does for multi-fact models)
   if (multiRoot) {
@@ -226,7 +238,7 @@ export function renderSvg(ds, { edgeLabels = false, title = true } = {}) {
     }
     const color = factColor[r.first.table_id] || factColor[r.second.table_id];
     const style = color ? ` style="stroke:${color}"` : "";
-    S.push(`<g class="rel" data-rel="${idx}" data-a="${esc(r.first.table_id)}" data-b="${esc(r.second.table_id)}"><title>${esc(relTip(r))}</title>` +
+    S.push(`<g class="rel${mk(marks?.rels?.[idx])}" data-rel="${idx}" data-a="${esc(r.first.table_id)}" data-b="${esc(r.second.table_id)}"><title>${esc(relTip(r))}</title>` +
       `<path class="edge${isCross ? " cross" : ""}" d="${d}"${style}/><path class="hit" d="${d}"/>`);
     if (edgeLabels && bx > ax) {
       S.push(converge
@@ -245,7 +257,7 @@ export function renderSvg(ds, { edgeLabels = false, title = true } = {}) {
     const cn = leafConnections(t.physical).map((c) => conns[c] ?? c);
     if (cn.length) tip.push(`connection: ${cn.join(", ")}`);
     if (t.columns.length) tip.push(`columns: ${t.columns.length}`);
-    S.push(`<g class="tbl" data-table="${esc(tid)}"><title>${esc(tip.join("\n"))}</title>` +
+    S.push(`<g class="tbl${mk(marks?.tables?.[tid])}" data-table="${esc(tid)}"><title>${esc(tip.join("\n"))}</title>` +
       `<rect class="box" x="${bx}" y="${by}" width="${bw(tid)}" height="${BOX_H}" rx="1"/>` +
       `<text class="lbl" x="${bx + 10}" y="${by + BOX_H / 2 + 4}">${esc(names[tid])}</text>` +
       (factColor[tid] ? `<rect x="${bx}" y="${by}" width="4" height="${BOX_H}" fill="${factColor[tid]}"/>` : "") +

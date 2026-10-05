@@ -18,7 +18,9 @@ Download **[tds-lens.html](https://antichaos.github.io/tds-lens/tds-lens.html)**
 - **Multi-fact models** (shared dimensions, Tableau 2024.2+): fact and dimension tables
 - **Extract**: storage (single or multiple tables), refresh info, extract filters
 - **Data source filters** and the number of calculated fields
-- **Downloads**: diagram as PNG or SVG, text report, Mermaid ER diagram, JSON
+- **Checks**: findings worth verifying (a name field joined to an ID field, join fields of different data types, a personal login) and notes worth documenting (default performance options, custom SQL, large physical join trees, Initial SQL, data source and extract filters). Each finding shows its evidence and can be highlighted in the diagram
+- **Compare** two files, for example acceptance and production or two versions: connections, tables, columns, relationships, performance options, extract settings, filters and calculated fields. Tables and relationships are matched by name and schema names are ignored, so only real differences show. Drop two files at once, or use "Compare with another file"
+- **Downloads**: Markdown documentation (for a wiki, Confluence or git), diagram as PNG or SVG, text report, Mermaid ER diagram, JSON
 
 ## Getting a .tds from Tableau Server or Tableau Cloud
 
