@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<datasource formatted-name='Superstore Sample' inline='true' version='18.1' xmlns:user='http://www.tableausoftware.com/xml/user'>
+  <connection class='federated'>
+    <named-connections>
+      <named-connection caption='sql01.corp' name='sqlserver.0abc'>
+        <connection authentication='sspi' class='sqlserver' dbname='Superstore' odbc-native-protocol='' one-time-sql='SET ARITHABORT ON;' query-band-spec='app=Tableau;user=&lt;TableauServerUser&gt;' schema='dbo' server='sql01.corp'>
+          <connection-customization class='sqlserver' enabled='false' version='18.1'>
+            <vendor name='sqlserver' /><driver name='sqlserver' />
+            <customizations><customization name='CAP_ODBC_FETCH_BUFFERS_RESIZABLE' value='yes' /></customizations>
+          </connection-customization>
+        </connection>
+      </named-connection>
+    <named-connection caption='People.xlsx' name='excel.1'><connection class='excel-direct' filename='People.xlsx' /></named-connection></named-connections>
+    <_.fcp.ObjectModelEncapsulateLegacy.false...relation connection='sqlserver.0abc' name='Orders' table='[dbo].[Orders]' type='table' />
+    <_.fcp.ObjectModelEncapsulateLegacy.true...relation type='collection'>
+      <relation connection='sqlserver.0abc' name='Orders' table='[dbo].[Orders]' type='table' />
+      <relation connection='sqlserver.0abc' name='People' table='[dbo].[People]' type='table' />
+    </_.fcp.ObjectModelEncapsulateLegacy.true...relation>
+    <cols>
+      <map key='[Region (People)]' value='[People].[Region]' />
+      <map key='[Region]' value='[Orders].[Region]' />
+      <map key='[Order ID]' value='[Orders].[Order ID]' />
+      <map key='[Order ID (Returns)]' value='[Returns].[Order ID]' />
+    </cols>
+    <metadata-records>
+      <metadata-record class='column'><remote-name>Order ID</remote-name><remote-type>129</remote-type><local-name>[Order ID]</local-name><parent-name>[Orders]</parent-name><local-type>string</local-type><_.fcp.ObjectModelEncapsulateLegacy.true...object-id>[Orders_ABC]</_.fcp.ObjectModelEncapsulateLegacy.true...object-id></metadata-record>
+      <metadata-record class='column'><remote-name>Region</remote-name><remote-type>129</remote-type><local-name>[Region]</local-name><parent-name>[Orders]</parent-name><local-type>string</local-type><_.fcp.ObjectModelEncapsulateLegacy.true...object-id>[Orders_ABC]</_.fcp.ObjectModelEncapsulateLegacy.true...object-id></metadata-record>
+      <metadata-record class='column'><remote-name>Region</remote-name><remote-type>129</remote-type><local-name>[Region (People)]</local-name><parent-name>[People]</parent-name><local-type>string</local-type><_.fcp.ObjectModelEncapsulateLegacy.true...object-id>[People_XYZ]</_.fcp.ObjectModelEncapsulateLegacy.true...object-id></metadata-record>
+      <metadata-record class='column'><remote-name>Order ID</remote-name><remote-type>129</remote-type><local-name>[Order ID (Returns)]</local-name><parent-name>[Returns]</parent-name><local-type>string</local-type></metadata-record>
+    </metadata-records>
+  </connection>
+  <column caption='Profit Ratio' datatype='real' name='[Calculation_1]' role='measure' type='quantitative'><calculation class='tableau' formula='SUM([Profit])/SUM([Sales])' /></column>
+  <filter class='categorical' column='[Region]' />
+  <_.fcp.ObjectModelEncapsulateLegacy.true...object-graph>
+    <objects>
+      <object caption='Orders' id='Orders_ABC'>
+        <properties context=''>
+          <relation join='left' type='join'>
+            <clause type='join'><expression op='='><expression op='[Orders].[Order ID]' /><expression op='[Returns].[Order ID]' /></expression></clause>
+            <relation connection='sqlserver.0abc' name='Orders' table='[dbo].[Orders]' type='table' />
+            <relation connection='sqlserver.0abc' name='Returns' type='text'>SELECT order_id AS [Order ID], returned
+FROM dbo.Returns WHERE returned = 1</relation>
+          </relation>
+        </properties>
+      </object>
+      <object caption='People' id='People_XYZ'>
+        <properties context=''><relation connection='excel.1' name='People' table='[People$]' type='table' /></properties>
+      </object>
+    </objects>
+    <relationships>
+      <relationship>
+        <expression op='='><expression op='[Region]' /><expression op='[Region (People)]' /></expression>
+        <first-end-point object-id='Orders_ABC' />
+        <second-end-point is-db-set-unique-key='false' object-id='People_XYZ' unique-key='true' />
+      </relationship>
+    </relationships>
+  </_.fcp.ObjectModelEncapsulateLegacy.true...object-graph>
+</datasource>

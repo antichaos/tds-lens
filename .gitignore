@@ -1,0 +1,15 @@
+.env
+.env.*
+node_modules/
+samples/private/
+*.hyper
+.DS_Store
+__pycache__/
+# local outputs and data source files in the project root (may contain company metadata)
+/*.svg
+/*.png
+/*.txt
+/*.tds
+/*.tdsx
+/*.twb
+/*.twbx
