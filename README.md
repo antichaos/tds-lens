@@ -22,6 +22,20 @@ Download **[tds-lens.html](https://antichaos.github.io/tds-lens/tds-lens.html)**
 - **Compare** two files, for example acceptance and production or two versions: connections, tables, columns, relationships, performance options, extract settings, filters and calculated fields. Tables and relationships are matched by name and schema names are ignored, so only real differences show. Drop two files at once, or use "Compare with another file"
 - **Downloads**: Markdown documentation (for a wiki, Confluence or git), diagram as PNG or SVG, text report, Mermaid ER diagram, JSON
 
+## Calc Lens: expensive calculations
+
+**→ [antichaos.github.io/tds-lens/calcs.html](https://antichaos.github.io/tds-lens/calcs.html)** (offline: [calc-lens.html](https://antichaos.github.io/tds-lens/calc-lens.html))
+
+A second page, built the same way (runs in your browser, nothing uploaded). Drop a `.twb` or `.twbx` to find the calculated fields that slow a workbook down:
+
+- **String logic**: text parsed into dates (`DATEPARSE`, `DATE` on a string), long IF/CASE chains, many string comparisons, regular expressions, other string functions
+- **LOD & table calculations**: FIXED/INCLUDE/EXCLUDE, nested LODs (also across calculations), table calculations, table calculations over table calculations
+- **Dependencies**: calculation chains of 4+ levels, and calculations that build on expensive ones
+- **Usage**: which sheets use each calculation (directly or through other calculations), which dashboards show them, which are used as filters or in data source filters, and which are not used at all. A table calculation used as a filter is flagged
+- **Other**: data blending, `COUNTD`/`MEDIAN`/`PERCENTILE`, `NOW`/`TODAY`/`RANDOM`, user functions
+
+Each calculation gets a severity from its findings and a **priority** that also weighs usage: one level higher when it is used in 3 or more sheets or in a filter, at most low when nothing uses it. Download the result as Markdown, CSV or JSON. A `.tds` works too, but without usage information.
+
 ## Getting a .tds from Tableau Server or Tableau Cloud
 
 Open the published data source, choose **Download**, and pick the option without the extract. You only need the definition, so the download stays small.
@@ -43,7 +57,7 @@ python tds_structure.py -d "My data source" -f json
 
 ## Development
 
-No build step for the website: `web/` is served as-is. `npm run build` only creates the single-file offline version.
+No build step for the website: `web/` is served as-is. `npm run build` only creates the single-file offline versions (`dist/tds-lens.html`, `dist/calc-lens.html`).
 
 ```bash
 npm install        # dev dependencies for the tests only

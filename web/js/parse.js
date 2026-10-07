@@ -345,14 +345,14 @@ export function parseXml(xmlText, DOMParserImpl = globalThis.DOMParser) {
   throw new Error(`Unexpected root element <${tagOf(root)}>: this is not a Tableau data source or workbook.`);
 }
 
-/** Return the XML text of a .tds/.twb, or extract it from a .tdsx/.twbx zip. */
-export async function readDefinition(bytes, filename, JSZipImpl = globalThis.JSZip) {
+/** Return the XML text of a .tds/.twb, or extract it from a .tdsx/.twbx zip (first match in `exts` order). */
+export async function readDefinition(bytes, filename, JSZipImpl = globalThis.JSZip, exts = [".tds", ".twb"]) {
   const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   const isZip = u8.length > 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04;
   if (!isZip) return new TextDecoder("utf-8").decode(u8);
   const zip = await JSZipImpl.loadAsync(u8);
   const names = Object.keys(zip.files).filter((n) => !zip.files[n].dir);
-  for (const ext of [".tds", ".twb"]) {
+  for (const ext of exts) {
     let hits = names.filter((n) => n.toLowerCase().endsWith(ext) && !n.replace(/^\/+|\/+$/g, "").includes("/"));
     if (!hits.length) hits = names.filter((n) => n.toLowerCase().endsWith(ext));
     if (hits.length) return zip.file(hits[0]).async("string");

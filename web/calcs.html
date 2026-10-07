@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Everything runs locally: no third-party scripts, no uploads. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Calc Lens</title>
+  <meta name="description" content="Find expensive calculations in a Tableau workbook: string logic, LOD expressions, table calculations and deep calculation chains, with the sheets that use them. Runs entirely in your browser.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="vendor/jszip.min.js"></script>
+  <script type="module" src="js/calcs-app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="calcs.html" aria-label="Calc Lens home">
+      <img src="favicon.svg" alt="" width="22" height="22">
+      <span>Calc Lens</span>
+    </a>
+    <div id="fileBar" class="filebar" hidden>
+      <span id="fileName" class="filename"></span>
+      <button id="openAnother" class="btn ghost" type="button">Open another file</button>
+    </div>
+    <span class="privacy" title="Your file is read by this page only. It is never uploaded.">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 1 2.5 3.2v4.1c0 3.4 2.3 6.4 5.5 7.4 3.2-1 5.5-4 5.5-7.4V3.2L8 1Z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="m5.6 8 1.7 1.7 3.2-3.4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+      Runs in your browser
+    </span>
+  </header>
+
+  <main>
+    <!-- Empty state -->
+    <section id="intro" class="intro">
+      <h1>Find expensive calculations</h1>
+      <p class="lead">Drop a <code>.twb</code> or <code>.twbx</code> workbook to find the calculated fields that slow it down,
+        and the sheets and dashboards that use them. Data sources (<code>.tds</code>, <code>.tdsx</code>) work too.</p>
+
+      <label id="dropZone" class="dropzone" for="fileInput">
+        <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true"><path d="M10 8h28v32H10z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16h6m-3-3v6M27 16h6M16 30l6 6m0-6-6 6M27 31h6m-6 4h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <strong>Drop your workbook here</strong>
+        <span>or <u>choose a file</u></span>
+        <input id="fileInput" type="file" accept=".twb,.twbx,.tds,.tdsx" hidden>
+      </label>
+      <p class="center"><button id="trySample" class="btn link" type="button">No file at hand? Try a sample</button></p>
+      <p id="error" class="error" role="alert" hidden></p>
+
+      <div class="features">
+        <div>
+          <h2>String logic</h2>
+          <p>Text parsed into dates, long IF and CASE chains on strings, regular expressions and other row-by-row string functions.</p>
+        </div>
+        <div>
+          <h2>LOD &amp; table calculations</h2>
+          <p>FIXED, INCLUDE and EXCLUDE expressions, nested LODs, table calculations over table calculations, and table calculations used as filters.</p>
+        </div>
+        <div>
+          <h2>Dependencies &amp; usage</h2>
+          <p>Deep calculation chains, calculations that build on expensive ones, and which sheets, filters and dashboards use each one. Unused calculations are listed too.</p>
+        </div>
+        <div>
+          <h2>Private</h2>
+          <p>The file is read by this page, in your browser. Nothing is uploaded, stored or tracked.</p>
+        </div>
+      </div>
+
+      <details class="howto">
+        <summary>What counts as expensive?</summary>
+        <div class="rules"></div>
+      </details>
+    </section>
+
+    <!-- Result -->
+    <section id="result" class="result" hidden>
+      <p id="error2" class="error" role="alert" hidden></p>
+      <div class="summary">
+        <div>
+          <h1 id="wbTitle"></h1>
+          <p id="wbMeta" class="muted"></p>
+        </div>
+        <dl id="wbStats" class="stats"></dl>
+      </div>
+
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Priority">
+          <button class="btn" type="button" data-prio="all">All findings</button>
+          <button class="btn" type="button" data-prio="medium">Medium and high</button>
+          <button class="btn" type="button" data-prio="high">High</button>
+        </div>
+        <select id="dsFilter" class="btn" aria-label="Data source" hidden></select>
+        <input id="search" class="btn search" type="search" placeholder="Search name or formula" aria-label="Search calculations">
+        <label class="check"><input id="showAll" type="checkbox"> Calculations without findings</label>
+        <span class="spacer"></span>
+        <div class="downloads" role="group" aria-label="Download">
+          <span class="muted small">Download</span>
+          <button class="btn" type="button" data-dl="md" title="For a wiki, Confluence or git">Markdown</button>
+          <button class="btn" type="button" data-dl="csv" title="Open in Excel">CSV</button>
+          <button class="btn" type="button" data-dl="json">JSON</button>
+        </div>
+      </div>
+      <p class="muted small hint-line">Priority is the severity of the findings, one level higher when the calculation is used in 3 or more sheets or in a filter, and at most low when nothing uses it.
+        <a href="#" id="showRules">What counts as expensive?</a></p>
+
+      <div id="calcList" class="report"></div>
+
+      <details id="rulesResult" class="howto">
+        <summary>What counts as expensive?</summary>
+        <div class="rules"></div>
+      </details>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Calc Lens runs entirely in your browser. Your file is never uploaded.
+      Not affiliated with or endorsed by Tableau or Salesforce. Tableau is a trademark of Salesforce, Inc.</p>
+    <p><a href="./">TDS Lens: see inside data sources</a> &middot; <a href="calc-lens.html" download>Offline version (single file)</a> &middot; <a href="https://github.com/antichaos/tds-lens">Source on GitHub</a> &middot; MIT licence</p>
+  </footer>
+</body>
+</html>

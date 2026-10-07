@@ -39,8 +39,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build the single-file offline version
-        run: node scripts/build-single.mjs && cp dist/tds-lens.html web/tds-lens.html
+      - name: Build the single-file offline versions
+        run: node scripts/build-single.mjs && cp dist/tds-lens.html dist/calc-lens.html web/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -257,3 +257,34 @@ table.diff td { overflow-wrap: anywhere; }
 table.diff tr[data-table], table.diff tr[data-rel] { cursor: pointer; }
 table.diff tr[data-table]:hover td, table.diff tr[data-rel]:hover td { background: var(--accent-soft); }
 #dsModel .pill { margin-right: 4px; }
+
+/* Calc Lens */
+.pill.sev-high { background: var(--error-soft); color: var(--error); }
+.pill.sev-medium { background: var(--warn-soft); color: var(--warn); }
+.pill.sev-low { background: var(--accent-soft); color: var(--accent); }
+.pill.sev-none { background: var(--surface-2); color: var(--muted); }
+.btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.search { cursor: text; min-width: 220px; }
+select.btn { padding-right: 6px; }
+.stats .stat-high dd { color: var(--error); }
+.stats .stat-medium dd { color: var(--warn); }
+.card.calc { border-left: 4px solid var(--border); scroll-margin-top: 64px; }
+.card.calc.prio-high { border-left-color: var(--error); }
+.card.calc.prio-medium { border-left-color: var(--warn); }
+.card.calc.prio-low { border-left-color: var(--accent); }
+.card.calc .card-head h3 { margin-right: auto; }
+.card.calc .checklist { gap: 8px; }
+.card.calc .finding-head .kw { margin-left: 2px; }
+.formula { max-height: 420px; }
+.formula mark { background: var(--warn-soft); color: inherit; font-weight: 700; border-radius: 3px; padding: 0 1px; }
+.card.calc.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { from { box-shadow: 0 0 0 4px var(--accent); } to { box-shadow: var(--shadow); } }
+table.rules-table td:first-child { font-weight: 600; white-space: nowrap; }
+table.rules-table tr.first td { border-top: 1px solid var(--border); }
+.howto .rules { margin-top: 10px; }
+#rulesResult { margin-top: 16px; }
+@media (max-width: 640px) {
+  .btn.search { min-width: 0; flex: 1 1 100%; order: 1; }
+  #wbStats { grid-template-columns: repeat(5, 1fr); }
+  table.rules-table td:first-child { white-space: normal; }
+}
